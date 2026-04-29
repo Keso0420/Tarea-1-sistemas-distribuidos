@@ -1,85 +1,52 @@
-# 🛰️ Sistema Distribuido de Análisis Urbano: Santiago de Chile
+# Análisis de Rendimiento en Sistemas Distribuidos de Consulta Geoespacial
 
-Este proyecto implementa una arquitectura de microservicios diseñada para procesar consultas geoespaciales masivas sobre un dataset de edificios en la Región Metropolitana. El sistema utiliza una estrategia de **Caché Distribuida (Cache-Aside)** para optimizar la latencia y reducir la carga en el generador de respuestas.
+## 📄 Resumen
+Este proyecto presenta el diseño, implementación y evaluación de un sistema distribuido escalable para el procesamiento de datos urbanos masivos. La arquitectura utiliza microservicios orquestados en contenedores para realizar consultas analíticas sobre un dataset de edificaciones en la Región Metropolitana de Santiago, implementando estrategias de **Cache-Aside** y políticas de reemplazo de datos para optimizar la eficiencia del sistema.
 
-## 🏗️ Arquitectura del Sistema
+## 🏗️ Arquitectura y Componentes
 
-El sistema se compone de 4 microservicios orquestados mediante **Docker Compose**:
+El ecosistema está fragmentado en cuatro componentes desacoplados que interactúan a través de una red interna de **Docker**:
 
-1.  **Generador de Tráfico (`trafico.py`)**: Simula clientes reales enviando consultas (Q1-Q5) bajo distribuciones de probabilidad **Zipf** (tráfico sesgado) o **Uniforme** (tráfico aleatorio).
-2.  **Sistema de Caché (`cache.py`)**: Actúa como un Proxy inteligente. Verifica la existencia de datos en una base de datos **Redis** antes de delegar el trabajo al backend.
-3.  **Generador de Respuestas (`respuestas.py`)**: El motor de cómputo. Carga un dataset de Santiago en memoria y realiza cálculos de área, densidad y distribución de confianza.
-4.  **Almacenamiento de Métricas (`metricas.py`)**: Servicio de telemetría que registra cada evento para el análisis posterior de rendimiento (Throughput, Latencia, Hit Rate).
+* **Generador de Tráfico Analítico (`trafico.py`)**: Emulador de carga de trabajo que genera peticiones concurrentes utilizando distribuciones probabilísticas (**Zipf** y **Uniforme**). Permite validar la localidad de referencia y el comportamiento del sistema ante tráfico sesgado o aleatorio.
+* **Orquestador de Caché (`cache.py`)**: Actúa como un *Proxy* de baja latencia. Implementa la lógica de búsqueda en **Redis** y gestiona la comunicación con el backend solo en caso de *cache miss*, minimizando el costo computacional.
+* **Motor de Cómputo (`respuestas.py`)**: Backend encargado del procesamiento de datos pesados. Utiliza **Pandas** y **NumPy** para realizar cálculos geoespaciales, filtrado por confianza y análisis de histogramas sobre el dataset cargado en memoria volátil.
+* **Sumidero de Telemetría (`metricas.py`)**: Servicio de monitoreo asíncrono que persiste los registros de cada transacción (timestamps, fuentes y latencias) en archivos CSV para su posterior auditoría.
 
 
 
----
+## 🛠️ Especificaciones Técnicas
 
-## 🚀 Cómo Ejecutar
+### 📈 Consultas Soportadas (Q1-Q5)
+El sistema resuelve operaciones de agregación y comparación:
+1.  **Conteo (Q1)** y **Cálculo de Áreas (Q2)** mediante filtrado por Bounding Box.
+2.  **Densidad Urbana (Q3)** y **Análisis Comparativo (Q4)** entre zonas geográficas.
+3.  **Distribución de Confianza (Q5)** mediante la generación de histogramas dinámicos.
 
-### Requisitos previos
-* Docker y Docker Compose.
-* Python 3.12+ (para el script de análisis local).
-* Dataset `santiagoCSV.gz` ubicado en la carpeta `data/`.
+### 💾 Estrategia de Gestión de Memoria
+Se implementó un mecanismo de **Padding** (relleno de carga útil) para simular objetos de gran tamaño, permitiendo estresar las políticas de reemplazo de Redis (**LRU - Least Recently Used**) incluso con volúmenes controlados de peticiones.
 
-### Instalación y Puesta en Marcha
-1.  Clona el repositorio.
-2.  Levanta la infraestructura completa:
+
+
+## 🧪 Metodología de Evaluación
+
+Para el análisis crítico, se utiliza el script `analisis.py`, el cual procesa los datos crudos y calcula métricas fundamentales de sistemas distribuidos:
+
+* **Hit Rate**: Eficacia de la capa de almacenamiento temporal.
+* **Throughput**: Tasa de transferencia efectiva del sistema (Consultas/Seg).
+* **Percentiles de Latencia (p50/p95)**: Caracterización del tiempo de respuesta, identificando cuellos de botella en el peor escenario (p95).
+* **Cache Efficiency**: Métrica de costo-beneficio que pondera el ahorro de tiempo frente a la penalización por acceso a la base de datos.
+* **Eviction Rate**: Frecuencia de expulsión de datos en la caché por saturación de memoria.
+
+## 🚀 Guía de Ejecución
+
+1.  **Despliegue de Infraestructura**:
     ```bash
     sudo docker compose up --build
     ```
-3.  El sistema comenzará a generar tráfico automáticamente y verás los logs en tiempo real.
-
----
-
-## 📊 Tipos de Consultas (Q1 - Q5)
-
-El sistema soporta cinco operaciones analíticas:
-* **Q1**: Conteo total de edificios en una zona con un umbral de confianza.
-* **Q2**: Cálculo de área promedio y área total construida.
-* **Q3**: Densidad de edificios por km².
-* **Q4**: Comparación de densidad entre dos zonas geográficas.
-* **Q5**: Distribución de confianza (Histograma) basada en intervalos dinámicos.
-
----
-
-## 🧪 Análisis de Rendimiento
-
-Para evaluar la eficiencia de la caché, el proyecto incluye un script de análisis estadístico (`analisis.py`) que procesa los registros de telemetría.
-
-### Métricas Calculadas:
-* **Hit Rate**: Efectividad de la caché para evitar procesamiento innecesario.
-* **Throughput**: Capacidad de respuesta del sistema (req/seg).
-* **Latencia p50 y p95**: Percentiles críticos para entender la experiencia del usuario.
-* **Eviction Rate**: Tasa de reemplazo de llaves en Redis según la política **LRU**.
-* **Cache Efficiency**: Relación costo-beneficio entre latencia de hit vs latencia de miss.
-
-### Ejecución del Análisis
-Una vez finalizado el tráfico, ejecuta en tu terminal local:
-```bash
-python3 analisis.py
-```
-
----
-
-## ⚙️ Configuración de Experimentos
-
-Puedes modificar el comportamiento del sistema editando `docker-compose.yml`:
-
-```yaml
-# Cambia el tamaño de la memoria para probar políticas de reemplazo
-command: redis-server --maxmemory 50mb --maxmemory-policy allkeys-lru
-```
-
-Y en `trafico.py`, puedes alternar entre:
-* `distribucion="zipf"`: Ideal para observar altos Hit Rates.
-* `distribucion="uniform"`: Ideal para poner a prueba la saturación de la memoria.
-
----
-
-## 🛠️ Tecnologías Utilizadas
-* **Lenguaje**: Python 3.12
-* **Framework**: Flask (Microservicios REST)
-* **Caché**: Redis (Base de datos en memoria)
-* **Procesamiento de Datos**: Pandas & NumPy
-* **Contenerización**: Docker & Docker Compose
+2.  **Configuración de Escenarios**: 
+    Modificar el parámetro `maxmemory` en `docker-compose.yml` para evaluar límites de 50MB, 200MB y 500MB.
+3.  **Extracción de Resultados**:
+    Tras completar el ciclo de peticiones, ejecutar el análisis de métricas:
+    ```bash
+    python3 analisis.py
+    ```
