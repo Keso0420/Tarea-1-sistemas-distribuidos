@@ -1,7 +1,3 @@
-¡Claro! Un buen **README** en GitHub es la cara de tu proyecto. Aquí tienes una estructura profesional que explica la arquitectura, el flujo de datos y cómo ejecutar los experimentos que realizaste.
-
----
-
 # 🛰️ Sistema Distribuido de Análisis Urbano: Santiago de Chile
 
 Este proyecto implementa una arquitectura de microservicios diseñada para procesar consultas geoespaciales masivas sobre un dataset de edificios en la Región Metropolitana. El sistema utiliza una estrategia de **Caché Distribuida (Cache-Aside)** para optimizar la latencia y reducir la carga en el generador de respuestas.
