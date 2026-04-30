@@ -1,4 +1,6 @@
 # Análisis de Rendimiento en Memoria Caché
+## 🔗 Link del video 
+https://youtu.be/5nWnmfqwd0o
 
 ## 📄 Resumen
 Este proyecto presenta el diseño, implementación y evaluación de un sistema distribuido escalable para el procesamiento de datos urbanos masivos. La arquitectura utiliza microservicios orquestados en contenedores para realizar consultas analíticas sobre un dataset de edificaciones en la Región Metropolitana de Santiago, implementando estrategias de **Cache-Aside** y políticas de reemplazo de datos para optimizar la eficiencia del sistema.
